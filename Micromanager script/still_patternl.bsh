@@ -1,0 +1,63 @@
+// Upload image from stack to SLM before each frame in MDA.
+//
+// We have to use the core API to upload each frame individually,
+// since there is no public sequencing API for SLM devices.
+//
+// Pariksheet Nanda <[hidden email]> July 2014
+// Edited by Shichen Liu sliu7@caltech.edu
+// License: Public Domain
+
+import ij.io.Opener; // To load TIFF stack file from disk.
+import ij.ImagePlus; // To hold the opened image.
+import ij.ImageStack; // To access stack pixels.
+
+// Load file from disk.
+Opener opener = new Opener();
+ImagePlus imp =
+opener.openImage("C:/Users/Zijie/Desktop/Shichen/shape_L.tiff"); // "/path/to/stack.tif"
+//"C:\Users\Zijie\Desktop\Shichen\connection_of_bars_masks/dist_bar6.tiff"
+//airfoil_masks/nacc0010.tiff
+// Get stack info.
+ImageStack stack = imp.getImageStack();
+slices = stack.getSize();
+
+// Set MDA to acquire the number of slices.
+//seqSettings = gui.getAcquisitionSettings();
+//seqSettings.numFrames = slices;
+//gui.setAcquisitionSettings(seqSettings);
+
+// Get the installed name of the SLM.
+mosaic = mmc.getSLMDevice();
+
+// Boilerplate when using runnables.
+acq.clearRunnables();
+
+// Runnable to upload each image to the SLM.
+runnable = new Runnable() {
+      int roi = 1;
+      int npos = 180;
+
+
+		//Initialize state
+     print("Script Loaded");
+      public void run() {
+
+         // Get the pixels of the stack slice.
+         pixels = stack.getPixels(roi);
+         // Upload the image to the SLM.
+         mmc.setSLMImage(mosaic, pixels);
+         // Activate the uploaded image on the SLM.
+         mmc.displaySLMImage(mosaic);
+         print("Activated slice " + roi);
+
+         //roi = roi%npos+1;
+         npos = npos + 1;
+          if (npos >= 5){
+          	roi = 1;
+          }
+
+      }
+   };
+
+// Dimension order is frame, position, channel, slice.
+acq.attachRunnable(-1, -1, 0, 0,runnable);
